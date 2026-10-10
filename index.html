@@ -706,6 +706,7 @@ function reconcile(s){
   d.crystals=Math.max(0,Math.floor(Number(s.crystals)||0));d.sound=s.sound!==false;
   if(s.stars&&typeof s.stars==="object")STATIONS.forEach(function(st){if(st.types){var v=Math.floor(Number(s.stars[st.k])||0);d.stars[st.k]=Math.max(0,Math.min(3,v));}});
   if(s.stat&&typeof s.stat==="object")Object.keys(s.stat).forEach(function(t){var x=s.stat[t];if(GEN[t]&&x){d.stat[t]={ok:Math.max(0,Math.floor(Number(x.ok)||0)),bad:Math.max(0,Math.floor(Number(x.bad)||0))};}});
+  if(s.pos&&isFinite(s.pos.x)&&isFinite(s.pos.z))d.pos={x:Number(s.pos.x),z:Number(s.pos.z)};
   return d;
 }
 var state=defaultState(),saveOk=true;
@@ -988,7 +989,7 @@ $("loadCode").addEventListener("click",function(){
   catch(e){toast("Код не подошёл. Проверь, что он скопирован целиком.",4);}
 });
 $("reset").addEventListener("click",function(){
-  if(confirm("Удалить весь прогресс и начать заново?")){state=defaultState();save();hud();$("menu").classList.remove("on");}
+  if(confirm("Удалить весь прогресс и начать заново?")){state=defaultState();save();if(pl)pl.position.set(0,0.4,26);hud();$("menu").classList.remove("on");}
 });
 /*UI_END*/
 
@@ -1810,6 +1811,7 @@ function init3D(){
   buildWorld();
   cur=scene;
   buildPlayer();
+  if(state.pos&&free(state.pos.x,state.pos.z))pl.position.set(state.pos.x,0.4,state.pos.z);
   resize();
   camera.position.set(pl.position.x,19.5,pl.position.z+24);
   window.addEventListener("resize",resize);
@@ -1936,9 +1938,19 @@ window.addEventListener("keydown",function(e){
   if(e.code==="KeyM"){if($("mapov").classList.contains("on"))closeMap();else openMap();}
 });
 
-if(!saveOk)toast("Браузер не даёт сохранять прогресс. Не используй приватный режим.",8);
+function savePos(){
+  if(!pl||!ready3d)return;
+  var x=Math.round(pl.position.x*10)/10,z=Math.round(pl.position.z*10)/10;
+  if(state.pos&&state.pos.x===x&&state.pos.z===z)return;
+  state.pos={x:x,z:z};save();
+}
+setInterval(savePos,2000);
+window.addEventListener("pagehide",savePos);
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")savePos();});
+
 load();init3D();hud();
 if(ready3d)toast("Веди героя джойстиком (на компьютере: WASD). Подойди к другу и нажми кнопку. Нажми на ⭐ вверху, чтобы узнать цель.",6);
+if(!saveOk)toast("Браузер не даёт сохранять прогресс. Не используй приватный режим.",8);
 </script>
 </body>
 </html>
